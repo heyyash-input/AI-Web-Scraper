@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Turn a public webpage into a short, readable summary.">
+    <title>WebScraper — AI Summary</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="WebScraper home">
+            <span class="brand-mark" aria-hidden="true">WS</span>
+            <span class="brand-name">WebScraper</span>
+        </a>
+        <span class="header-label">AI SUMMARY</span>
+    </header>
+
+    <main>
+        <section class="intro" aria-labelledby="page-heading">
+            <p class="eyebrow">LESS SCROLLING. MORE READING.</p>
+            <h1 id="page-heading">Get the <span>main idea.</span></h1>
+            <p class="intro-copy">Paste a webpage URL. Get a short summary of what matters.</p>
+        </section>
+
+        <section class="workspace" aria-label="Summarize a webpage">
+            <form id="summary-form">
+                <label for="url">WEBPAGE URL</label>
+                <div class="input-row">
+                    <span class="input-icon" aria-hidden="true">↗</span>
+                    <input id="url" name="url" type="url" placeholder="https://example.com/article"
+                           required maxlength="2048" autocomplete="url" spellcheck="false"
+                           aria-describedby="url-hint">
+                    <button id="submit-button" type="submit">Summarize <span aria-hidden="true">→</span></button>
+                </div>
+                <p class="hint" id="url-hint">Works best with public articles and text-based pages.</p>
+            </form>
+
+            <div id="error" class="error" role="alert" hidden></div>
+
+            <div id="loading" class="loading" role="status" hidden>
+                <div class="loading-track" aria-hidden="true"></div>
+                <p>Loading... Reading the page and writing your summary.</p>
+            </div>
+
+            <div id="empty-state" class="empty-state">
+                <span class="document-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                <p>Your summary will appear here.</p>
+                <span>Add a link above to get started.</span>
+            </div>
+
+            <section id="result" class="result" aria-labelledby="result-heading" tabindex="-1" hidden>
+                <div class="result-label"><span class="accent-dot" aria-hidden="true"></span> YOUR SUMMARY</div>
+                <h2 id="result-heading"></h2>
+                <a id="source-link" class="source-link" target="_blank" rel="noopener noreferrer"></a>
+                <p id="summary-text" class="summary-text"></p>
+                <p id="truncated-note" class="result-note" hidden>This is a long page. The summary covers the first portion of its main text.</p>
+                <p class="result-note">AI summaries can miss details. Check the original page when accuracy matters.</p>
+            </section>
+        </section>
+    </main>
+
+    <footer><span><span class="accent-dot" aria-hidden="true"></span> WebScraper</span><span>Built by Yash Patil</span></footer>
+</body>
+</html>
