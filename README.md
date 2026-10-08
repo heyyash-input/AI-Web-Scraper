@@ -1,38 +1,37 @@
 # AI Web Scraper
 
-A small Spring Boot app that reads a public webpage and returns a short AI summary. The frontend uses plain HTML, CSS, and JavaScript, with the black-and-yellow styling from my [earlier web scraper](https://github.com/heyyash-input/webscraper-springboot).
+Paste a public webpage URL and get a short AI generated summary. The app is built with Java and Spring Boot, with a lightweight HTML, CSS, and JavaScript interface.
 
-## Stack
+**Live app:** [ai-web-scraper-sm87.onrender.com](https://ai-web-scraper-sm87.onrender.com/)
 
-- Java 21 and Spring Boot 4
-- Jsoup for extracting text from HTML
-- Apache HttpClient for fetching pages with connection-level public-address checks
-- Groq's API for summarization
-- HTML, CSS, and JavaScript served by Spring Boot
+## Features
 
-No database, Node.js, or separate frontend server is needed.
+- Fetches public HTML pages and extracts the main readable text.
+- Summarizes the page with Groq's free API tier.
+- Shows the page title, source link, loading state, and clear errors.
+- Keeps the API key on the server; it is never sent to the browser.
+- Limits page downloads and summary input size.
+- Blocks private network addresses, including when a page redirects.
+
+## Try the live app
+
+Open the [live app](https://ai-web-scraper-sm87.onrender.com/), paste a complete public URL such as `https://example.com/article`, and select **Summarize**.
+
+The first request can take a little longer if the free Render service has been idle. The deployed service also needs a valid `GROQ_API_KEY` environment variable to generate summaries.
 
 ## Run locally
 
-Install **JDK 21** and make sure `java -version` works. The included Maven wrapper downloads Maven on its first run, so a separate Maven installation is optional. Internet access is required to download dependencies, fetch webpages, and call Groq.
+You need **JDK 21**. Maven is included through the wrapper, so a separate Maven install is optional. The first run needs internet access to download dependencies.
 
-### 1. Configure the API key
+### 1. Get a Groq API key
 
-Create a free Groq account and generate a key at [console.groq.com/keys](https://console.groq.com/keys). Keep the account on the Free plan. Requests are subject to Groq's [free-plan limits](https://console.groq.com/docs/rate-limits).
+Create a key at [console.groq.com/keys](https://console.groq.com/keys). The default model runs through Groq; no paid OpenAI API key is required. Groq's free usage is subject to [rate limits](https://console.groq.com/docs/rate-limits).
 
-Copy `.env.example` to **`.env` in the project root, next to `pom.xml`**:
+### 2. Create the local environment file
 
-```text
-ai-web-scraper/
-  .env              <-- put your key here
-  .env.example
-  pom.xml
-  mvnw
-  mvnw.cmd
-  src/
-```
+Copy `.env.example` to **`.env` in the repository root, beside `pom.xml`**.
 
-Windows PowerShell:
+PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
@@ -44,23 +43,21 @@ macOS / Linux:
 cp .env.example .env
 ```
 
-Edit `.env`:
+Open `.env` and add your key:
 
 ```dotenv
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY=paste_your_groq_key_here
 GROQ_MODEL=openai/gpt-oss-20b
 PORT=8080
 ```
 
-The default is an open-weight model hosted by **Groq**. It uses a Groq key and Groq's free plan; no paid OpenAI API key is used. You can change `GROQ_MODEL` to another text model available to your Groq account.
+Keep the key on the right side of `=` without quotes. The `.env` file is ignored by Git. Restart the app after changing it.
 
-Spring Boot loads this root `.env` as a properties file. Use `KEY=value` without quotes or `export`. Restart the application after changing it. Environment variables set by your hosting platform override the file. `.env` is ignored by Git and excluded from Docker images.
-
-### 2. Start the backend and frontend
+### 3. Start the app
 
 Run from the project root.
 
-Windows PowerShell:
+PowerShell:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -72,80 +69,66 @@ macOS / Linux:
 sh mvnw spring-boot:run
 ```
 
-Open **[http://localhost:8080](http://localhost:8080)**. This starts both parts: Spring Boot serves the frontend at `/` and the backend at `/api/summarize`. Do not open `index.html` directly from disk.
+Open [http://localhost:8080](http://localhost:8080). Spring Boot serves the page and API from the same app. Keep the terminal open while you use it.
 
-Paste a full `https://` URL and click **Summarize**. The button shows **Loading...** while the request runs. A successful result includes the page title, source link, and summary. Invalid URLs, inaccessible pages, missing keys, and AI rate limits show a readable error.
+## Deploy on Render
 
-The UI starts without an API key, but generating a summary requires a valid key.
+This repository includes a `Dockerfile` for deploying the Spring Boot app as one public web service.
 
-### Tests and production build
+1. In Render, create a **Web Service** and connect this GitHub repository.
+2. Select **Docker** as the runtime. The Dockerfile is in the repository root.
+3. Add `GROQ_API_KEY` in the service's **Environment** settings. Add `GROQ_MODEL` only if you want a different model.
+4. Deploy the service and open the `onrender.com` URL Render provides.
 
-```powershell
-.\mvnw.cmd test
-.\mvnw.cmd package
-java -jar target/ai-web-scraper.jar
-```
-
-On macOS / Linux, replace `.\mvnw.cmd` with `sh mvnw`. Run the JAR from the project root so it can read `.env`.
-
-Tests cover text extraction, long-page limits, URL validation, redirects to private addresses, API validation, and AI success/error responses. AI calls in tests go to a local mock server, so tests do not need a real key or use your quota.
+Set the key in Render's environment settings; don't commit it to GitHub. For details, see [Render's Docker deployment guide](https://render.com/docs/docker).
 
 ## API
 
-`POST /api/summarize` with `Content-Type: application/json`:
+`POST /api/summarize`
+
+Request body:
 
 ```json
-{"url": "https://example.com/article"}
+{
+  "url": "https://example.com/article"
+}
 ```
 
-Example response shape (illustrative):
+Successful response:
 
 ```json
 {
   "url": "https://example.com/article",
-  "title": "Article title",
-  "summary": "A short summary of the article.",
+  "title": "Example article",
+  "summary": "A concise summary of the page.",
   "truncated": false
 }
 ```
 
-Errors use `{"error": "Readable message"}` with an appropriate HTTP status.
+If a page has more text than the AI input limit, `truncated` is `true`. Errors return a readable `error` message.
 
 ## How it works
 
-1. The frontend sends the URL to the Spring Boot controller.
-2. The scraper accepts HTTP/HTTPS URLs on standard web ports, checks the resolved addresses, and validates each redirect. The HTTP client also checks DNS addresses when connecting.
-3. Jsoup removes scripts, navigation, footers, and other non-content elements. It prefers `article` or `main` content and falls back to the body.
-4. Up to 12,000 characters of extracted text are sent to Groq with a prompt requesting a short summary.
-5. The frontend displays the response as plain text.
+1. The browser posts the URL to the Spring Boot API.
+2. The backend checks the URL and redirects, then fetches the HTML.
+3. Jsoup removes common page clutter and extracts the main text.
+4. The extracted text goes to Groq for a short summary.
+5. The browser displays the title, source, and summary.
 
-The backend keeps the API key private. No scraped pages or summaries are stored.
+Scraped pages and summaries are not stored.
 
-## Deploy on Render
+## Limitations
 
-The included `Dockerfile` builds and runs the entire app as one service.
+- The scraper reads basic HTML. It does not run page JavaScript or access pages that require a login.
+- Some websites block automated requests, and simple extraction may include unrelated text.
+- Downloads over 2 MB are rejected; extracted text is limited to 12,000 characters.
+- Groq's free tier has usage limits. If the limit is reached, try again later.
+- The public demo has no user accounts or per-user request limits. Avoid sharing it for high-traffic use without adding those controls.
 
-1. Push this project to your public GitHub repository.
-2. In Render, create a **Web Service** and connect that repository.
-3. Choose the **Docker** runtime. Use the repository root and `./Dockerfile`.
-4. Set `GROQ_API_KEY` in Render's environment settings. Optionally set `GROQ_MODEL`; the default is `openai/gpt-oss-20b`. The app reads the platform's `PORT` variable.
-5. Deploy and open the URL Render assigns. Test one real summary before submitting the link.
+## Tech used
 
-See [Render's Docker deployment documentation](https://render.com/docs/docker). Hosting availability and pricing depend on the plan you select. For a Docker build locally:
+Java 21 · Spring Boot · Jsoup · Apache HttpClient · Groq · HTML · CSS · JavaScript
 
-```bash
-docker build -t ai-web-scraper .
-docker run --rm -p 8080:8080 --env-file .env ai-web-scraper
-```
+## Challenge
 
-## Limitations and tradeoffs
-
-- This reads basic HTML. It does not run page JavaScript, log in, bypass paywalls, or bypass bot protections.
-- Extraction is a simple heuristic, so pages without clear article markup can include unrelated text.
-- Pages larger than 2 MB are rejected. Long extracted text is shortened to limit AI input; the UI tells you when this happens.
-- Groq's free tier has quotas. A rate-limit response asks the user to retry later.
-- This is a small demo with no authentication or application-level request quotas. Those would be needed for a shared service with significant traffic.
-
-## Implementation challenges
-
-The main challenge is extracting useful text without passing navigation and other page clutter to the model. Removing common non-content elements and preferring `article` or `main` gives a practical starting point. Long pages also need an input limit so a single request does not consume too much of the free API quota. The UI reports both truncated content and provider errors rather than silently returning an incomplete result.
+The main challenge was extracting useful article text without including menus, footers, and other page clutter. Pages can also be very long, so the app limits how much text it sends to the AI service and tells the user when the source was shortened.
